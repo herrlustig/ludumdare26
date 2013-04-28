@@ -10,6 +10,7 @@
  
 var canvases_width = 640;
 var canvases_height = 480;
+
 // game resources
 var g_resources = [
 // testlevel tilesets
@@ -34,10 +35,27 @@ var g_resources = [
     src: "data/metatiles64x64.png"
 },
 // testlevel
+/*
 {
     name: "test_lvl",
     type: "tmx",
     src: "data/test_lvl.tmx"
+},
+*/
+{
+    name: "lvl1",
+    type: "tmx",
+    src: "data/lvl1.tmx"
+},
+{
+    name: "lvl2",
+    type: "tmx",
+    src: "data/lvl2.tmx"
+},
+{
+    name: "test_lvl2",
+    type: "tmx",
+    src: "data/test_lvl2.tmx"
 },
 // test main player spritesheet
 {
@@ -69,6 +87,18 @@ var g_resources = [
     type: "audio",
     src: "data/",
 	channel: 4 // TODO: check out what it makes exacly
+},
+{
+    name: "transfer_middle",
+    type: "audio",
+    src: "data/",
+	channel: 5 // TODO: check out what it makes exacly
+},
+{
+    name: "long_moan",
+    type: "audio",
+    src: "data/",
+	channel: 3 // TODO: check out what it makes exacly
 }
 ];
 
@@ -99,6 +129,7 @@ var jsApp	=
 
 		// load everything & display a loading screen
 		me.state.change(me.state.LOADING);
+		do_pointillize = false;
 	},
 	
 	
@@ -113,13 +144,17 @@ var jsApp	=
 		me.state.set(me.state.PLAY, new PlayScreen());
          // add our player entity in the entity pool
 		me.entityPool.add("mainPlayer", PlayerEntity);
-             
+		me.entityPool.add("whistled", WhistledEntity);
+		me.entityPool.add("targetPointer", WhistledEntity); // Target Pointer
+
+		
    // enable the keyboard
    me.input.bindKey(me.input.KEY.LEFT,  "left");
    me.input.bindKey(me.input.KEY.RIGHT, "right");
    me.input.bindKey(me.input.KEY.X,     "jump", true);
-   me.input.bindKey(me.input.KEY.W,     "whistle1", true);
-   me.input.bindKey(me.input.KEY.E,     "whistle2", true);
+   me.input.bindKey(me.input.KEY.W,     "whistle1");
+   me.input.bindKey(me.input.KEY.E,     "whistle2");
+   me.input.bindKey(me.input.KEY.Q,     "whistle3");
 
       // start the game 
 		me.state.change(me.state.PLAY);
@@ -129,8 +164,7 @@ var jsApp	=
 		sketchProc.options.isTransparent = true;
 		var p = new Processing($("#overlay_canvas")[0], sketchProc)
 	}
-
-}; // jsApp
+}
 
 /* the in game stuff*/
 var PlayScreen = me.ScreenObject.extend(
@@ -141,7 +175,7 @@ var PlayScreen = me.ScreenObject.extend(
       // stuff to reset on state change
 	  // stuff to reset on state change
         // load a level
-        me.levelDirector.loadLevel("test_lvl");
+        me.levelDirector.loadLevel("lvl1");
 		// play the audio track
 		me.audio.play("test_pulse_cycle", true ); // loop
 	},
