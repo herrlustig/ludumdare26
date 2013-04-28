@@ -14,22 +14,30 @@ var PlayerEntity = me.ObjectEntity.extend({
         this.parent(x, y, settings);
 		this.collidable = true;
         // set the default horizontal & vertical speed (accel vector)
-        this.setVelocity(3, 15);
+        this.setVelocity(6, 15);
  
         // set the display to follow our position on both axis
         me.game.viewport.follow(this.pos, me.game.viewport.AXIS.BOTH);
  
 		// set audio not playing
 		this.audioPlaying = false;
+		this.bounceRight = false;
+		this.bounceLeft = false;
     },
  
-    /* -----
- 
-    update the player pos
- 
-    ------ */
+    onBeatAction: function () {
+		if (this.onBeat){
+			console.debug("######## Moved On Beat!");
+			me.game.viewport.fadeOut("#00FF00", 0.2, 50);
+			onBeat_cooldown += 50; // TODO: the nearer on the real beat, the more ms he can see the hidden elements
+			// console.debug("onBeat cooldown is now:", onBeat_cooldown); 
+		} else {
+			onBeat_cooldown -= 50; //400; // TODO: the nearer on the real beat, the more ms he can see the hidden elements
+		}
+	},
     update: function() {
  
+		this.onBeat = checkIfOnBeat();
         if (me.input.isKeyPressed('left')) {
             // flip the sprite on horizontal axis
             this.flipX(true);
@@ -37,14 +45,20 @@ var PlayerEntity = me.ObjectEntity.extend({
             this.vel.x -= this.accel.x * me.timer.tick;
 			// TODO: replace, just a test
 			if ( !this.audioPlaying ) {
-				me.audio.play("test_pulse_cycle", false, function() { this.audioPlaying = false });
+				// me.audio.play("test_pulse_cycle", false, function() { this.audioPlaying = false }); // TODO, add again
 			}
+			// me.game.viewport.shake(2, 30, me.game.viewport.AXIS.HORIZONTAL); // melonjs' shake is buggy
+			this.onBeatAction();
+			
 			//
         } else if (me.input.isKeyPressed('right')) {
             // unflip the sprite
             this.flipX(false);
             // update the entity velocity
             this.vel.x += this.accel.x * me.timer.tick;
+			// me.game.viewport.shake(2, 30, me.game.viewport.AXIS.HORIZONTAL); // melonjs' shake is buggy
+			this.onBeatAction();
+			
         } else {
             this.vel.x = 0;
         }
@@ -56,9 +70,24 @@ var PlayerEntity = me.ObjectEntity.extend({
                 this.vel.y = -this.maxVel.y * me.timer.tick;
                 // set the jumping flag
                 this.jumping = true;
+				this.onBeatAction();
             }
- 
+			// me.game.viewport.shake(2, 30, me.game.viewport.AXIS.VERTICAL); // melonjs' shake is buggy
         }
+		
+		if (this.bounceRight && !this.falling) {
+            this.vel.x = 3*this.maxVel.x * me.timer.tick;
+		} else {
+			this.bounceRight = false;
+		}
+		if (this.bounceLeft && !this.falling) {
+            this.vel.x = -3*this.maxVel.x * me.timer.tick;
+		} else {
+			this.bounceLeft = false;
+		}
+		
+		if (onBeat_cooldown < 0) { onBeat_cooldown = 0 };
+		// console.debug("onBeat cooldown is now:", onBeat_cooldown); 
 		if (me.input.isKeyPressed('whistle1')) {
 				me.audio.play("test_whistle1", false, function() { this.audioPlaying = false });
         }
@@ -74,7 +103,7 @@ var PlayerEntity = me.ObjectEntity.extend({
 				me.audio.play("transfer_middle", false, function() { });				
 				whistle3_cooldown = new Date().getTime();
 				whistle3_ring_there = false;
-				console.debug("Whistle 3 ready, go!");
+				// console.debug("Whistle 3 ready, go!");
 			}
 		}
         
@@ -86,9 +115,30 @@ var PlayerEntity = me.ObjectEntity.extend({
     var res = me.game.collide(this);
  
     if (res) {
-        // if we collide with an enemy
-        if (res.obj.type == me.game.INVISIBLE_OBJECT) {
+		console.debug("Collision!, object type:", res.obj.type);
+        if (res.obj.type == "whistled_r") {
+			console.debug("Whistled r type collision");
+            // bounce (force jump)
+			this.bounceRight = true;
+            this.falling = false;
+            this.vel.y = -this.maxVel.y * me.timer.tick;
+			// this.vel.x = 200 * me.timer.tick;
+			// this.pos.x += 1000;
+			// this.vel.x += 200*this.accel.x * me.timer.tick;
+            this.jumping = true;
+		} else if (res.obj.type == "whistled_l") {
+			console.debug("Whistled r type collision");
+            // bounce (force jump)
+			this.bounceLeft = true;
+            this.falling = false;
+            this.vel.y = -this.maxVel.y * me.timer.tick;
+			// this.vel.x = 200 * me.timer.tick;
+			// this.pos.x += 1000;
+			// this.vel.x += 200*this.accel.x * me.timer.tick;
+            this.jumping = true;
+		} else if (res.obj.type == me.game.INVISIBLE_OBJECT) {
             // check if we jumped on it
+						console.debug("Normal invisvle collision");
             if ((res.y > 0) && ! this.jumping) {
                 // bounce (force jump)
                 this.falling = false;
@@ -96,20 +146,15 @@ var PlayerEntity = me.ObjectEntity.extend({
                 // set the jumping flag
                 this.jumping = true;
  
-            } else {
-                
-                //this.flicker(45);
-            }
-        }
+            } 
+		}
+	}
+    // update animation if necessary
+    if (this.vel.x!=0 || this.vel.y!=0) {
+        // update object animation
+        this.parent();
+        return true;
     }
- 
- 
-        // update animation if necessary
-        if (this.vel.x!=0 || this.vel.y!=0) {
-            // update object animation
-            this.parent();
-            return true;
-        }
          
         // else inform the engine we did not perform
         // any update (e.g. position, animation)
@@ -117,7 +162,7 @@ var PlayerEntity = me.ObjectEntity.extend({
     },
 	 onCollision: function(res, obj) {
  
-        console.log("player entity collision!");
+        // console.log("player entity collision!");
     }
  
 });
@@ -133,7 +178,15 @@ var WhistledEntity = me.InvisibleEntity.extend({
     init: function(x, y, settings) {
         // call the constructor
         this.parent(x, y, settings);
-		console.log("whistled initalized!");
+		console.debug("whistled init settings:", settings);
+		if (settings.direction == "r") {
+			console.debug("whistled RIGHT");
+			this.type = "whistled_r";
+		} else if (settings.direction == "l") {
+			console.debug("whistled RIGHT");
+			this.type = "whistled_l";
+		}
+		// console.log("whistled initalized!");
 	},
  
 
@@ -162,6 +215,25 @@ var WhistledEntity = me.InvisibleEntity.extend({
     // obj parameter corresponds to the other object (typically the player) touching this one
     onCollision: function(res, obj) {
  
-        console.log("whistled entity collision!");
+        // console.log("whistled entity collision!");
     }
+});
+
+var ScoreObject = me.HUD_Item.extend({
+    init: function(x, y) {
+        // call the parent constructor
+        this.parent(x, y);
+        // create a font
+        this.font = new me.Font();
+    },
+ 
+    /* -----
+ 
+    draw our score
+ 
+    ------ */
+    draw: function(context, x, y) {
+        this.font.draw(context, this.value, this.pos.x + x, this.pos.y + y);
+    }
+ 
 });

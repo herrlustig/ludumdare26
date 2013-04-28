@@ -10,6 +10,11 @@
  
 var canvases_width = 640;
 var canvases_height = 480;
+var onBeat_cooldown = 0;
+
+// beat / music sets
+var beats = ["test_beat2"] ; //, "test_beat2"];
+
 
 // game resources
 var g_resources = [
@@ -28,6 +33,11 @@ var g_resources = [
     name: "line_vertical",
     type: "image",
     src: "data/line_vertical.png"
+},
+{
+    name: "area01_level_tiles",
+    type: "image",
+    src: "data/area01_level_tiles.png"
 },
 {
     name: "metatiles64x64", //TODO: needed ? remove
@@ -102,6 +112,87 @@ var g_resources = [
 }
 ];
 
+
+// push sound material into the resources
+for(var i = 0; i < beats.length; i++) { g_resources.push( {name: beats[i], type: "audio", src: "data/", channel: 3}); }; 
+
+
+// helper function to choose randomly from array
+function chooseSample( sampleArray ) {
+
+	return sampleArray[Math.floor(Math.random()*sampleArray.length)];
+
+}
+
+
+function playBeatCallbackFunc(teststring){ // TODO: rename, used by playBeat
+	teststring = teststring || "-"; 
+	// console.debug("play beat callback func:", current_beat, current_beat_time/1000);
+	current_beat = chooseSample(beats);
+	playBeat();
+}
+
+var current_beat = chooseSample(beats);
+var current_beat_time = new Date().getTime();
+var beat_queue = [];
+
+function calcMeanBeatDur( last_x) {
+	last_x = last_x || 4;
+	if (last_x < beat_queue.length -1) {
+		durs = [];
+		for (var i = 0; i < last_x - 1; i++) {
+			a = beat_queue[beat_queue.length-1-i];
+			b = beat_queue[beat_queue.length-2-i];
+			durs.push(a - b);
+		}
+		sum_dur = 0;
+		for (var i = 0; i < durs.length; i++) {
+			sum_dur += durs[i];
+		}
+		return sum_dur / durs.length;
+		// finally
+	} else {
+		return false;
+	}
+}
+
+var onBeat_tolerance = 60; // in milliseconds;
+function checkIfOnBeat() {
+	time_now = new Date().getTime() - me.timer.fps-10;
+	// near enough to last beat ?
+	after_beat_time = time_now - current_beat_time;
+	if ( after_beat_time < onBeat_tolerance ) {
+		//console.debug("after beat", after_beat_time);
+		return true;
+	}
+	// ok, well near enough to next beat ?
+	beatDur = calcMeanBeatDur();
+	// return false;
+	if (beatDur == false ) { 
+		return false; 
+	} // we dont know, not enough to calc mean beat;
+	// *
+	before_beat_time = current_beat_time + beatDur - time_now;
+	if (before_beat_time < onBeat_tolerance) {
+		// console.debug("before beat", before_beat_time);
+		return true;
+	} else { 
+		return false;
+	}
+	// */
+}
+	
+	
+function playBeat() {
+
+	// me.audio.play("test_pulse_cycle", false, playBeat());
+	current_beat_time = new Date().getTime();
+	beat_queue.push(current_beat_time);         // queue is now [2]
+	if ( beat_queue.length > 10 ) {
+		beat_queue.shift(); // queue is now [5]
+	}
+	me.audio.play(current_beat, false, playBeatCallbackFunc);
+}
 var jsApp	= 
 {	
 	/* ---
@@ -129,7 +220,6 @@ var jsApp	=
 
 		// load everything & display a loading screen
 		me.state.change(me.state.LOADING);
-		do_pointillize = false;
 	},
 	
 	
@@ -162,7 +252,10 @@ var jsApp	=
 		// processing
 		// set background transparency
 		sketchProc.options.isTransparent = true;
-		var p = new Processing($("#overlay_canvas")[0], sketchProc)
+		var p = new Processing($("#overlay_canvas")[0], sketchProc);
+		// play the audio track
+		playBeat();
+		
 	}
 }
 
@@ -172,12 +265,12 @@ var PlayScreen = me.ScreenObject.extend(
 
    onResetEvent: function()
 	{	
-      // stuff to reset on state change
 	  // stuff to reset on state change
         // load a level
-        me.levelDirector.loadLevel("lvl1");
-		// play the audio track
-		me.audio.play("test_pulse_cycle", true ); // loop
+        me.levelDirector.loadLevel("lvl2");
+		
+		me.game.addHUD(0, 430, 640, 60);
+		// me.game.HUD.addItem("score", new ScoreObject(620, 10));
 	},
 	
 	

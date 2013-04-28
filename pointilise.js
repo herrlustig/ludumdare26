@@ -13,6 +13,14 @@ function whistle2_ready() {
   return whistle2_last_time_ago > 1000;
 }
 
+// TODO: when true, give back how much enough => this should influence the alpha value of the whistled
+function enough_onBeat_cooldown(){
+	if (onBeat_cooldown > 400) { 
+		return true;
+	} else {
+		return false;
+	}
+}
 
 var sketchProc = new Processing.Sketch(function(processing) {
 
@@ -30,12 +38,17 @@ processing.setup = function () {
 
 processing.draw = function () 
 { 
+  processing.stroke(0, 255);
 
+  if ( whistle2_ready() && whistle3_ready() && ! enough_onBeat_cooldown()) {
+	var pointillize = 10;
 
-  if ( whistle2_ready() && whistle3_ready()) {
-  var pointillize = 10; // was between 10 and 18, random
+	var draw_x_times = 5; 
+  } else { // slow it down when player whistled
+	var pointillize = 10; 
 
-  var draw_x_times = 5; 
+	var draw_x_times = 1; 
+  }
   // *
   processing.fill(0,0,0,2);
   processing.rect(0,0,processing.width, processing.height)
@@ -55,11 +68,10 @@ processing.draw = function ()
 	var blue = pix[2];
 	var alpha = pix[3];
 	*/
+	processing.strokeWeight(4);
 	processing.fill(processing.color(pix[0], pix[1], pix[2], pix[3],126));
 	processing.rect(x, y, pointillize+Math.floor(Math.random()*10), pointillize+Math.floor(Math.random()*60));
 	draw_x_times = draw_x_times -1;
-  };
-  
   
   } // end 'pointillism'
   // if whistling draw a red dot where the player is
@@ -68,12 +80,13 @@ processing.draw = function ()
 	var pl = me.game.getEntityByName("mainPlayer")[0];
 	var posOnScreenX = pl.pos.x + pl.width/2 - me.game.viewport.pos.x;
 	var posOnScreenY = pl.pos.y + pl.height/2 - me.game.viewport.pos.y;
+	processing.strokeWeight(2);
 	processing.fill(processing.color(255,0,0,255));
 	processing.rect(posOnScreenX, posOnScreenY, 20, 20);
   }
   
   // if whistling draw a red dot where the player is
-	if (  ! whistle2_ready() ) {
+	if (  ! whistle2_ready() || enough_onBeat_cooldown()) {
 		ws = me.game.getEntityByName("whistled");
 		// console.debug("whistle two, processing", ws.length, ws);
 		for (var i = 0; i < ws.length; i++) {
@@ -81,7 +94,13 @@ processing.draw = function ()
 			posOnScreenY = ws[i].pos.y  - me.game.viewport.pos.y;
 		
 			// console.debug(posOnScreenX, posOnScreenY);
-			processing.fill(processing.color(0, 255, 0, 255));
+			if (ws[i].type == "whistled_r") {
+				processing.fill(processing.color(255, 255, 0, 255));
+			} else if (ws[i].type == "whistled_l") {
+				processing.fill(processing.color(0, 0, 255, 255));
+			} else {
+				processing.fill(processing.color(0, 255, 0, 255));
+			}
 			processing.rect(posOnScreenX, posOnScreenY, ws[i].width, ws[i].height);
 		}
 		
@@ -101,7 +120,11 @@ processing.draw = function ()
 		posOnScreenY = l.pos.y + l.height/2 - me.game.viewport.pos.y;
 		processing.noFill();
 		// processing.fill();
-		// processing.stroke(155, 153);
+		//processing.stroke(155, 153);
+		processing.strokeWeight(6);
+		// processing.stroke(0,255,0, 153);
+		processing.stroke(200,255,200, 153);
+
 		// processing.stroke(155, 53);
 		// processing.strokeWeight(2);
 		processing.ellipse(posOnScreenX,posOnScreenY, whistle3_ringdiameter, whistle3_ringdiameter);
@@ -110,6 +133,8 @@ processing.draw = function ()
 		whistle3_ringdiameter = 0;
 	}
 	
+	processing.stroke(0, 255);
+	processing.strokeWeight(2);
 	var pl = me.game.getEntityByName("mainPlayer")[0];
 	var posOnScreenX = pl.pos.x + pl.width/2 - me.game.viewport.pos.x;
 	var posOnScreenY = pl.pos.y + pl.height/2 - me.game.viewport.pos.y;
