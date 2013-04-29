@@ -4,7 +4,7 @@ var whistle3_cooldown = 0.0;
 var whistle3_ringdiameter = 0.0;
 function whistle3_ready() {
   whistle3_last_time_ago = new Date().getTime() - whistle3_cooldown;
-  return whistle3_last_time_ago > 3000;
+  return whistle3_last_time_ago > 5000;
 }
 
 var whistle2_cooldown = 0.0;
@@ -60,14 +60,7 @@ processing.draw = function ()
 	var ctx_game = $("#jsapp").children('canvas')[0].getContext('2d');
 	var imgd = ctx_game.getImageData(x, y, 1, 1);
 	var pix = imgd.data;
-	/*
-	console.debug(pix);
 	
-	var red = pix[0];
-	var green = pix[1];
-	var blue = pix[2];
-	var alpha = pix[3];
-	*/
 	processing.strokeWeight(4);
 	processing.fill(processing.color(pix[0], pix[1], pix[2], pix[3],126));
 	processing.rect(x, y, pointillize+Math.floor(Math.random()*10), pointillize+Math.floor(Math.random()*60));

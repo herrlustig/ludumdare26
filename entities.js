@@ -27,12 +27,12 @@ var PlayerEntity = me.ObjectEntity.extend({
  
     onBeatAction: function () {
 		if (this.onBeat){
-			console.debug("######## Moved On Beat!");
+			// console.debug("######## Moved On Beat!");
 			me.game.viewport.fadeOut("#00FF00", 0.2, 50);
-			onBeat_cooldown += 50; // TODO: the nearer on the real beat, the more ms he can see the hidden elements
+			onBeat_cooldown += 100; // TODO: the nearer on the real beat, the more ms he can see the hidden elements
 			// console.debug("onBeat cooldown is now:", onBeat_cooldown); 
 		} else {
-			onBeat_cooldown -= 50; //400; // TODO: the nearer on the real beat, the more ms he can see the hidden elements
+			onBeat_cooldown -= 200; //400; // TODO: the nearer on the real beat, the more ms he can see the hidden elements
 		}
 	},
     update: function() {
@@ -89,18 +89,18 @@ var PlayerEntity = me.ObjectEntity.extend({
 		if (onBeat_cooldown < 0) { onBeat_cooldown = 0 };
 		// console.debug("onBeat cooldown is now:", onBeat_cooldown); 
 		if (me.input.isKeyPressed('whistle1')) {
-				me.audio.play("test_whistle1", false, function() { this.audioPlaying = false });
+				me.audio.play("test_whistle1", false, function() { this.audioPlaying = false }, 0.3);
         }
 		if (me.input.isKeyPressed('whistle2')) {
 			if(whistle2_ready()){
-				me.audio.play("test_whistle2", false, function() { this.audioPlaying = false });
+				me.audio.play("test_whistle2", false, function() { this.audioPlaying = false }, 0.3);
 				whistle2_cooldown = new Date().getTime();
 				// clearOverlay();
 			}
         }
 		if (me.input.isKeyPressed('whistle3')) {
 			if(whistle3_ready()){
-				me.audio.play("transfer_middle", false, function() { });				
+				me.audio.play("transfer_middle", false, function() { }, 0.2);				
 				whistle3_cooldown = new Date().getTime();
 				whistle3_ring_there = false;
 				// console.debug("Whistle 3 ready, go!");
@@ -115,19 +115,21 @@ var PlayerEntity = me.ObjectEntity.extend({
     var res = me.game.collide(this);
  
     if (res) {
-		console.debug("Collision!, object type:", res.obj.type);
+		// console.debug("Collision!, object type:", res.obj.type);
+		if (res.obj.type == "endGame") {
+		    me.input.bindKey(me.input.KEY.ENTER, "enter",  true);
+			me.state.change(me.state.ENDGAME);
+		}
         if (res.obj.type == "whistled_r") {
-			console.debug("Whistled r type collision");
+			// console.debug("Whistled r type collision");
             // bounce (force jump)
 			this.bounceRight = true;
             this.falling = false;
             this.vel.y = -this.maxVel.y * me.timer.tick;
-			// this.vel.x = 200 * me.timer.tick;
-			// this.pos.x += 1000;
-			// this.vel.x += 200*this.accel.x * me.timer.tick;
+
             this.jumping = true;
 		} else if (res.obj.type == "whistled_l") {
-			console.debug("Whistled r type collision");
+			// console.debug("Whistled r type collision");
             // bounce (force jump)
 			this.bounceLeft = true;
             this.falling = false;
@@ -138,14 +140,13 @@ var PlayerEntity = me.ObjectEntity.extend({
             this.jumping = true;
 		} else if (res.obj.type == me.game.INVISIBLE_OBJECT) {
             // check if we jumped on it
-						console.debug("Normal invisvle collision");
+			//			console.debug("Normal invisvle collision");
             if ((res.y > 0) && ! this.jumping) {
                 // bounce (force jump)
                 this.falling = false;
                 this.vel.y = -this.maxVel.y * me.timer.tick;
                 // set the jumping flag
                 this.jumping = true;
- 
             } 
 		}
 	}
@@ -178,12 +179,14 @@ var WhistledEntity = me.InvisibleEntity.extend({
     init: function(x, y, settings) {
         // call the constructor
         this.parent(x, y, settings);
-		console.debug("whistled init settings:", settings);
-		if (settings.direction == "r") {
-			console.debug("whistled RIGHT");
+		// console.debug("whistled init settings:", settings);
+		if (settings.endGame == "endIt") {
+			this.type = "endGame";
+		} else if (settings.direction == "r") {
+			// console.debug("whistled RIGHT");
 			this.type = "whistled_r";
 		} else if (settings.direction == "l") {
-			console.debug("whistled RIGHT");
+			// console.debug("whistled RIGHT");
 			this.type = "whistled_l";
 		}
 		// console.log("whistled initalized!");
@@ -204,7 +207,7 @@ var WhistledEntity = me.InvisibleEntity.extend({
         if (res.obj.type == me.game.PLAYER_OBJECT) {
             // check if we jumped on it
 			
-			console.debug("############### invisible object touched")
+			//console.debug("############### invisible object touched")
         }
     }
 		
@@ -219,21 +222,69 @@ var WhistledEntity = me.InvisibleEntity.extend({
     }
 });
 
-var ScoreObject = me.HUD_Item.extend({
-    init: function(x, y) {
-        // call the parent constructor
-        this.parent(x, y);
-        // create a font
-        this.font = new me.Font();
+var StartScreen = me.ScreenObject.extend({
+    init: function() {
+        this.parent(true); 
+        this.title = null;
+   },
+ 
+    onResetEvent: function() {
+        if (this.title == null) {
+            this.title = me.loader.getImage("title_screen");
+        }
+        me.input.bindKey(me.input.KEY.ENTER, "enter", true);
+ 
     },
  
-    /* -----
+    // update function
+    update: function() {
+        // enter pressed ?
+        if (me.input.isKeyPressed('enter')) {
+            me.state.change(me.state.PLAY);
+        }
+        return true;
+    },
  
-    draw our score
- 
-    ------ */
-    draw: function(context, x, y) {
-        this.font.draw(context, this.value, this.pos.x + x, this.pos.y + y);
+    // draw function
+    draw: function(context) {
+        context.drawImage(this.title, 0, 0);
+    },
+    onDestroyEvent: function() {
+        me.input.unbindKey(me.input.KEY.ENTER);
     }
  
 });
+
+var EndScreen = me.ScreenObject.extend({
+    init: function() {
+        this.parent(true); 
+        this.title = null;
+   },
+ 
+    onResetEvent: function() {
+        if (this.title == null) {
+            this.title = me.loader.getImage("thx_screen");
+        }
+        me.input.bindKey(me.input.KEY.ENTER, "enter", true);
+ 
+    },
+ 
+    // update function
+    update: function() {
+        // enter pressed ?
+        if (me.input.isKeyPressed('enter')) {
+            me.state.change(me.state.PLAY);
+        }
+        return true;
+    },
+ 
+    // draw function
+    draw: function(context) {
+        context.drawImage(this.title, 0, 0);
+    },
+    onDestroyEvent: function() {
+        me.input.unbindKey(me.input.KEY.ENTER);
+    }
+ 
+});
+

@@ -13,7 +13,7 @@ var canvases_height = 480;
 var onBeat_cooldown = 0;
 
 // beat / music sets
-var beats = ["test_beat2"] ; //, "test_beat2"];
+var beats = ["test_beat1", "test_beat2", "bass_1","bass_2","bass_3"];
 
 
 // game resources
@@ -51,6 +51,11 @@ var g_resources = [
     type: "tmx",
     src: "data/test_lvl.tmx"
 },
+{
+    name: "test_lvl2",
+    type: "tmx",
+    src: "data/test_lvl2.tmx"
+},
 */
 {
     name: "lvl1",
@@ -63,9 +68,24 @@ var g_resources = [
     src: "data/lvl2.tmx"
 },
 {
-    name: "test_lvl2",
+    name: "lvl3",
     type: "tmx",
-    src: "data/test_lvl2.tmx"
+    src: "data/lvl3.tmx"
+},
+{
+    name: "lvl4",
+    type: "tmx",
+    src: "data/lvl4.tmx"
+},
+{
+    name: "lvl5",
+    type: "tmx",
+    src: "data/lvl5.tmx"
+},
+{
+    name: "lvl6",
+    type: "tmx",
+    src: "data/lvl6.tmx"
 },
 // test main player spritesheet
 {
@@ -90,25 +110,33 @@ var g_resources = [
     name: "test_whistle1",
     type: "audio",
     src: "data/",
-	channel: 3 // TODO: check out what it makes exacly
+	channel: 3 
 },
 {
     name: "test_whistle2",
     type: "audio",
     src: "data/",
-	channel: 4 // TODO: check out what it makes exacly
+	channel: 4
 },
 {
     name: "transfer_middle",
     type: "audio",
     src: "data/",
-	channel: 5 // TODO: check out what it makes exacly
+	channel: 5
 },
 {
     name: "long_moan",
     type: "audio",
     src: "data/",
-	channel: 3 // TODO: check out what it makes exacly
+	channel: 3
+},
+{	name: "title_screen",        
+	type: "image",	
+	src: "data/title_screen.png"
+},
+{	name: "thx_screen",        
+	type: "image",	
+	src: "data/thx_screen.png"
 }
 ];
 
@@ -156,9 +184,9 @@ function calcMeanBeatDur( last_x) {
 	}
 }
 
-var onBeat_tolerance = 60; // in milliseconds;
+var onBeat_tolerance = 120; // in milliseconds;
 function checkIfOnBeat() {
-	time_now = new Date().getTime() - me.timer.fps-10;
+	time_now = new Date().getTime() + 100;
 	// near enough to last beat ?
 	after_beat_time = time_now - current_beat_time;
 	if ( after_beat_time < onBeat_tolerance ) {
@@ -230,35 +258,32 @@ var jsApp	=
 		---										*/
 	loaded: function ()
 	{
-		// set the "Play/Ingame" Screen Object
 		me.state.set(me.state.PLAY, new PlayScreen());
-         // add our player entity in the entity pool
+		me.state.set(me.state.MENU, new StartScreen());
+		me.state.set(me.state.GAMEEND, new EndScreen());
+
+        
 		me.entityPool.add("mainPlayer", PlayerEntity);
 		me.entityPool.add("whistled", WhistledEntity);
 		me.entityPool.add("targetPointer", WhistledEntity); // Target Pointer
 
-		
-   // enable the keyboard
-   me.input.bindKey(me.input.KEY.LEFT,  "left");
-   me.input.bindKey(me.input.KEY.RIGHT, "right");
-   me.input.bindKey(me.input.KEY.X,     "jump", true);
-   me.input.bindKey(me.input.KEY.W,     "whistle1");
-   me.input.bindKey(me.input.KEY.E,     "whistle2");
-   me.input.bindKey(me.input.KEY.Q,     "whistle3");
+		me.input.bindKey(me.input.KEY.LEFT,  "left");
+		me.input.bindKey(me.input.KEY.RIGHT, "right");
+		me.input.bindKey(me.input.KEY.UP,     "jump", true);
+		me.input.bindKey(me.input.KEY.T,     "whistle1");
+		me.input.bindKey(me.input.KEY.V,     "whistle2");
+		me.input.bindKey(me.input.KEY.SPACE,     "whistle3");
 
-      // start the game 
-		me.state.change(me.state.PLAY);
-		
-		// processing
-		// set background transparency
-		sketchProc.options.isTransparent = true;
-		var p = new Processing($("#overlay_canvas")[0], sketchProc);
+		me.state.change(me.state.MENU);
+		// me.state.change(me.state.PLAY);
+
 		// play the audio track
 		playBeat();
 		
 	}
 }
 
+var p = null;
 /* the in game stuff*/
 var PlayScreen = me.ScreenObject.extend(
 {
@@ -267,10 +292,11 @@ var PlayScreen = me.ScreenObject.extend(
 	{	
 	  // stuff to reset on state change
         // load a level
-        me.levelDirector.loadLevel("lvl2");
-		
-		me.game.addHUD(0, 430, 640, 60);
-		// me.game.HUD.addItem("score", new ScoreObject(620, 10));
+        me.levelDirector.loadLevel("lvl1");
+		// processing
+		// set background transparency
+		sketchProc.options.isTransparent = true;
+		p = new Processing($("#overlay_canvas")[0], sketchProc);
 	},
 	
 	
@@ -281,13 +307,12 @@ var PlayScreen = me.ScreenObject.extend(
 		---	*/
 	onDestroyEvent: function()
 	{
-	
+		p.exit()
    }
 
 });
 
 
-//bootstrap :)
 window.onReady(function() 
 {
 	jsApp.onload();
